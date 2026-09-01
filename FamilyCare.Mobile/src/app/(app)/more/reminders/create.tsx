@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react';
 import { StyleSheet, ScrollView, Alert } from 'react-native';
 import { useRouter } from 'expo-router';
 import { reminderService } from '@/services/reminderService';
+import { notificationService } from '@/services/notificationService';
 import { familyMemberService } from '@/services/familyMemberService';
 import { FamilyMember } from '@/types/family';
 import { ThemedText } from '@/components/themed-text';
@@ -11,15 +12,22 @@ import { useTheme } from '@/hooks/use-theme';
 import { FormInput } from '@/components/ui/FormInput';
 import { PrimaryButton } from '@/components/ui/PrimaryButton';
 import { SelectDropdown, DropdownItem } from '@/components/ui/SelectDropdown';
+import { CustomDateTimePicker } from '@/components/ui/CustomDateTimePicker';
 import { useTranslation } from '@/i18n';
 
 export default function CreateReminderScreen() {
   const { t } = useTranslation();
   const [title, setTitle] = useState('');
   const [description, setDescription] = useState('');
-  const [date, setDate] = useState(new Date().toISOString().split('T')[0]);
-  const [familyMemberId, setFamilyMemberId] = useState<string | number>('');
   
+  // Date & Time Picker state
+  const [selectedDateTime, setSelectedDateTime] = useState<Date>(() => {
+    const d = new Date();
+    d.setHours(d.getHours() + 1, 0, 0, 0); // default to next hour
+    return d;
+  });
+
+  const [familyMemberId, setFamilyMemberId] = useState<string | number>('');
   const [members, setMembers] = useState<FamilyMember[]>([]);
   const [isLoading, setIsLoading] = useState(false);
   const router = useRouter();
@@ -45,20 +53,42 @@ export default function CreateReminderScreen() {
   }));
 
   const handleSave = async () => {
-    if (!title || !familyMemberId || !date) {
-      Alert.alert(t('error'), `${t('reminderTitle')}, ${t('date')}, & ${t('familyMember')} are required.`);
+    if (!title || !familyMemberId) {
+      Alert.alert(t('error'), `${t('reminderTitle')} & ${t('familyMember')} are required.`);
       return;
     }
 
     setIsLoading(true);
     try {
-      await reminderService.createReminder({
+      // Format as local ISO string (YYYY-MM-DDTHH:mm:ss) to prevent UTC timezone skew
+      const year = selectedDateTime.getFullYear();
+      const month = String(selectedDateTime.getMonth() + 1).padStart(2, '0');
+      const day = String(selectedDateTime.getDate()).padStart(2, '0');
+      const hours = String(selectedDateTime.getHours()).padStart(2, '0');
+      const minutes = String(selectedDateTime.getMinutes()).padStart(2, '0');
+      const seconds = String(selectedDateTime.getSeconds()).padStart(2, '0');
+      const localIsoString = `${year}-${month}-${day}T${hours}:${minutes}:${seconds}`;
+
+      const res = await reminderService.createReminder({
         familyMemberId: Number(familyMemberId),
         title,
         description: description || undefined,
-        reminderAt: new Date(date).toISOString(),
+        reminderAt: localIsoString,
         isCompleted: false,
       });
+
+      // Schedule local push notification at the exact chosen date and time
+      const selectedMember = members.find((m) => m.id === Number(familyMemberId));
+      if (res?.id) {
+        await notificationService.scheduleReminder({
+          reminderId: res.id,
+          title,
+          description: description || undefined,
+          targetDate: selectedDateTime,
+          familyMemberName: selectedMember?.name,
+        });
+      }
+
       router.back();
     } catch (error: any) {
       Alert.alert(t('error'), error.message);
@@ -88,10 +118,13 @@ export default function CreateReminderScreen() {
           placeholder={t('optional')}
         />
 
-        <FormInput
-          label={`${t('date')} (YYYY-MM-DD) *`}
-          value={date}
-          onChangeText={setDate}
+        {/* Seamless Date & Specific Time Picker */}
+        <CustomDateTimePicker
+          labelDate={`${t('date')}`}
+          labelTime={`${t('time')}`}
+          selectedDateTime={selectedDateTime}
+          onDateTimeChange={setSelectedDateTime}
+          required
         />
 
         <SelectDropdown

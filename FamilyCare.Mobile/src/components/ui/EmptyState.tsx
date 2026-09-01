@@ -1,30 +1,67 @@
-import { StyleSheet, ViewStyle } from 'react-native';
-import { ThemedView } from '../themed-view';
+import React from 'react';
+import { StyleSheet, View, ViewStyle } from 'react-native';
 import { ThemedText } from '../themed-text';
-import { Spacing } from '@/constants/theme';
+import { Radius, Spacing } from '@/constants/theme';
+import { useTheme } from '@/hooks/use-theme';
 import { PrimaryButton } from './PrimaryButton';
+import { AppIcon } from './AppIcon';
 
 interface EmptyStateProps {
   message: string;
+  description?: string;
+  icon?: string;
   actionLabel?: string;
   onAction?: () => void;
   style?: ViewStyle;
 }
 
-export function EmptyState({ message, actionLabel, onAction, style }: EmptyStateProps) {
+export function EmptyState({
+  message,
+  description,
+  icon = 'doc.plaintext',
+  actionLabel,
+  onAction,
+  style,
+}: EmptyStateProps) {
+  const theme = useTheme();
+
   return (
-    <ThemedView style={[styles.container, style]}>
-      <ThemedText themeColor="textSecondary" style={styles.message}>
-        {message}
-      </ThemedText>
+    <View
+      style={[
+        styles.container,
+        {
+          backgroundColor: theme.surfaceSubtle,
+          borderColor: theme.cardBorder,
+        },
+        style,
+      ]}
+    >
+      <View
+        style={[
+          styles.iconBox,
+          {
+            backgroundColor: theme.backgroundSelected,
+          },
+        ]}
+      >
+        <AppIcon name={icon} tintColor={theme.primary} size={32} />
+      </View>
+      <ThemedText style={styles.title}>{message}</ThemedText>
+      {description ? (
+        <ThemedText themeColor="textSecondary" style={styles.description}>
+          {description}
+        </ThemedText>
+      ) : null}
       {actionLabel && onAction && (
-        <PrimaryButton 
-          title={actionLabel} 
-          onPress={onAction} 
-          style={styles.actionButton} 
+        <PrimaryButton
+          title={actionLabel}
+          onPress={onAction}
+          size="sm"
+          icon="plus"
+          style={styles.actionButton}
         />
       )}
-    </ThemedView>
+    </View>
   );
 }
 
@@ -33,15 +70,33 @@ const styles = StyleSheet.create({
     padding: Spacing.five,
     alignItems: 'center',
     justifyContent: 'center',
-    borderRadius: 12,
-    marginVertical: Spacing.four,
+    borderRadius: Radius.lg,
+    borderWidth: 1,
+    marginVertical: Spacing.three,
   },
-  message: {
-    textAlign: 'center',
+  iconBox: {
+    width: 64,
+    height: 64,
+    borderRadius: 32,
+    justifyContent: 'center',
+    alignItems: 'center',
     marginBottom: Spacing.three,
   },
+  title: {
+    fontSize: 16,
+    fontWeight: '700',
+    textAlign: 'center',
+    marginBottom: 4,
+  },
+  description: {
+    fontSize: 13,
+    textAlign: 'center',
+    marginBottom: Spacing.three,
+    maxWidth: 260,
+  },
   actionButton: {
-    paddingHorizontal: Spacing.five,
-    height: 44,
-  }
+    marginTop: Spacing.two,
+    minWidth: 140,
+  },
 });
+

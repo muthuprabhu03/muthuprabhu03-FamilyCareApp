@@ -13,7 +13,7 @@ import { useRouter } from 'expo-router';
 import { aiService } from '@/services/aiService';
 import { ThemedText } from '@/components/themed-text';
 import { ThemedView } from '@/components/themed-view';
-import { Spacing } from '@/constants/theme';
+import { Radius, Shadows, Spacing } from '@/constants/theme';
 import { useTheme } from '@/hooks/use-theme';
 import { AppIcon } from '@/components/ui/AppIcon';
 import { useTranslation } from '@/i18n';
@@ -96,31 +96,57 @@ export default function AiAssistantScreen() {
       behavior={Platform.OS === 'ios' ? 'padding' : undefined}
       style={[styles.container, { backgroundColor: theme.backgroundElement }]}
     >
-      <ThemedView style={styles.header}>
-        <TouchableOpacity onPress={() => router.back()} style={styles.backButton}>
-          <AppIcon name="chevron.left" tintColor={theme.text} size={24} />
+      {/* Header */}
+      <ThemedView style={[styles.header, { borderBottomColor: theme.cardBorder }]}>
+        <TouchableOpacity
+          onPress={() => router.back()}
+          style={[styles.backButton, { backgroundColor: theme.card, borderColor: theme.cardBorder }]}
+          activeOpacity={0.7}
+        >
+          <AppIcon name="chevron.left" tintColor={theme.text} size={20} />
         </TouchableOpacity>
-        <View style={{ flex: 1 }}>
-          <ThemedText type="default" style={styles.headerTitle}>Flash AI</ThemedText>
-          <ThemedText type="small" themeColor="textSecondary">Your Personal Family Assistant</ThemedText>
-        </View>
-        <View style={styles.aiBadge}>
-          <AppIcon name="bolt.fill" tintColor="#6366f1" size={14} />
-          <ThemedText style={styles.aiBadgeText}>FLASH LIVE</ThemedText>
+
+        <View style={styles.headerTitleContainer}>
+          <View style={styles.titleRow}>
+            <ThemedText type="default" style={styles.headerTitle}>
+              Flash AI
+            </ThemedText>
+            <View style={[styles.aiBadge, { backgroundColor: theme.purpleBg }]}>
+              <AppIcon name="bolt.fill" tintColor={theme.primary} size={12} />
+              <ThemedText style={[styles.aiBadgeText, { color: theme.primary }]}>
+                LIVE
+              </ThemedText>
+            </View>
+          </View>
+          <ThemedText type="small" themeColor="textSecondary">
+            Your Personal Family Assistant
+          </ThemedText>
         </View>
       </ThemedView>
 
       {/* Quick Suggestion Chips */}
       <View style={styles.chipsContainer}>
-        <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.chipsScroll}>
+        <ScrollView
+          horizontal
+          showsHorizontalScrollIndicator={false}
+          contentContainerStyle={styles.chipsScroll}
+        >
           {quickQuestions.map((q, idx) => (
             <TouchableOpacity
               key={idx}
-              style={[styles.chip, { backgroundColor: theme.background }]}
+              style={[
+                styles.chip,
+                { backgroundColor: theme.card, borderColor: theme.cardBorder },
+                Shadows.soft,
+              ]}
               onPress={() => handleSend(q)}
               disabled={isThinking}
+              activeOpacity={0.8}
             >
-              <ThemedText type="small" style={styles.chipText}>{q}</ThemedText>
+              <AppIcon name="bolt.circle" tintColor={theme.primary} size={14} style={{ marginRight: 6 }} />
+              <ThemedText type="small" style={[styles.chipText, { color: theme.text }]}>
+                {q}
+              </ThemedText>
             </TouchableOpacity>
           ))}
         </ScrollView>
@@ -131,6 +157,7 @@ export default function AiAssistantScreen() {
         ref={scrollViewRef}
         style={styles.messagesContainer}
         contentContainerStyle={{ padding: Spacing.four, paddingBottom: Spacing.six }}
+        showsVerticalScrollIndicator={false}
       >
         {messages.map((msg) => {
           const isAi = msg.sender === 'ai';
@@ -138,16 +165,35 @@ export default function AiAssistantScreen() {
             <View
               key={msg.id}
               style={[
-                styles.messageBubble,
-                isAi ? [styles.aiBubble, { backgroundColor: theme.background }] : styles.userBubble,
+                styles.messageRow,
+                isAi ? styles.aiRow : styles.userRow,
               ]}
             >
               {isAi && (
-                <View style={styles.aiAvatar}>
-                  <ThemedText style={styles.aiAvatarText}>⚡</ThemedText>
+                <View style={[styles.aiAvatar, { backgroundColor: theme.primary }]}>
+                  <AppIcon name="bolt.fill" tintColor="#ffffff" size={14} />
                 </View>
               )}
-              <View style={styles.bubbleTextContainer}>
+
+              <View
+                style={[
+                  styles.messageBubble,
+                  isAi
+                    ? [
+                        styles.aiBubble,
+                        {
+                          backgroundColor: theme.card,
+                          borderColor: theme.cardBorder,
+                        },
+                        Shadows.soft,
+                      ]
+                    : [
+                        styles.userBubble,
+                        { backgroundColor: theme.primary },
+                        Shadows.soft,
+                      ],
+                ]}
+              >
                 <ThemedText
                   style={[
                     styles.messageText,
@@ -160,10 +206,15 @@ export default function AiAssistantScreen() {
                   type="small"
                   style={[
                     styles.timestampText,
-                    isAi ? { color: theme.textSecondary } : { color: 'rgba(255,255,255,0.7)' },
+                    isAi
+                      ? { color: theme.textSecondary }
+                      : { color: 'rgba(255,255,255,0.75)' },
                   ]}
                 >
-                  {msg.timestamp.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                  {msg.timestamp.toLocaleTimeString([], {
+                    hour: '2-digit',
+                    minute: '2-digit',
+                  })}
                 </ThemedText>
               </View>
             </View>
@@ -171,36 +222,72 @@ export default function AiAssistantScreen() {
         })}
 
         {isThinking && (
-          <View style={[styles.messageBubble, styles.aiBubble, { backgroundColor: theme.background }]}>
-            <View style={styles.aiAvatar}>
-              <ThemedText style={styles.aiAvatarText}>⚡</ThemedText>
+          <View style={[styles.messageRow, styles.aiRow]}>
+            <View style={[styles.aiAvatar, { backgroundColor: theme.primary }]}>
+              <AppIcon name="bolt.fill" tintColor="#ffffff" size={14} />
             </View>
-            <View style={styles.thinkingContainer}>
-              <ActivityIndicator size="small" color="#667eea" />
-              <ThemedText style={styles.thinkingText}>Flash is thinking...</ThemedText>
+            <View
+              style={[
+                styles.messageBubble,
+                styles.aiBubble,
+                { backgroundColor: theme.card, borderColor: theme.cardBorder },
+                Shadows.soft,
+              ]}
+            >
+              <View style={styles.thinkingContainer}>
+                <ActivityIndicator size="small" color={theme.primary} />
+                <ThemedText type="small" themeColor="textSecondary" style={styles.thinkingText}>
+                  Flash is analyzing family data...
+                </ThemedText>
+              </View>
             </View>
           </View>
         )}
       </ScrollView>
 
       {/* Input Bar */}
-      <ThemedView style={[styles.inputBar, { backgroundColor: theme.background, borderTopColor: theme.backgroundSelected }]}>
-        <TextInput
-          style={[styles.input, { color: theme.text, backgroundColor: theme.backgroundElement }]}
-          placeholder="Ask Flash anything..."
-          placeholderTextColor={theme.textSecondary}
-          value={inputMessage}
-          onChangeText={setInputMessage}
-          onSubmitEditing={() => handleSend()}
-          returnKeyType="send"
-          editable={!isThinking}
-        />
+      <ThemedView
+        style={[
+          styles.inputBar,
+          {
+            backgroundColor: theme.card,
+            borderTopColor: theme.cardBorder,
+          },
+        ]}
+      >
+        <View
+          style={[
+            styles.inputWrapper,
+            {
+              backgroundColor: theme.inputBg,
+              borderColor: theme.inputBorder,
+            },
+          ]}
+        >
+          <TextInput
+            style={[styles.input, { color: theme.text }]}
+            placeholder="Ask Flash anything about your family..."
+            placeholderTextColor={theme.textSecondary}
+            value={inputMessage}
+            onChangeText={setInputMessage}
+            onSubmitEditing={() => handleSend()}
+            returnKeyType="send"
+            editable={!isThinking}
+          />
+        </View>
+
         <TouchableOpacity
-          style={[styles.sendButton, (!inputMessage.trim() || isThinking) && { opacity: 0.5 }]}
+          style={[
+            styles.sendButton,
+            { backgroundColor: theme.primary },
+            (!inputMessage.trim() || isThinking) && { opacity: 0.4 },
+            inputMessage.trim() && Shadows.glowPrimary,
+          ]}
           onPress={() => handleSend()}
           disabled={!inputMessage.trim() || isThinking}
+          activeOpacity={0.85}
         >
-          <AppIcon name="arrow.right.square.fill" tintColor="#ffffff" size={22} />
+          <AppIcon name="arrow.right.square.fill" tintColor="#ffffff" size={20} />
         </TouchableOpacity>
       </ThemedView>
     </KeyboardAvoidingView>
@@ -212,22 +299,37 @@ const styles = StyleSheet.create({
   header: {
     flexDirection: 'row',
     alignItems: 'center',
-    padding: Spacing.four,
+    paddingHorizontal: Spacing.four,
     paddingTop: Spacing.six,
+    paddingBottom: Spacing.three,
     backgroundColor: 'transparent',
+    borderBottomWidth: 1,
   },
-  backButton: { marginRight: Spacing.three },
-  headerTitle: { fontSize: 20, fontWeight: 'bold' },
+  backButton: {
+    width: 38,
+    height: 38,
+    borderRadius: 19,
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginRight: Spacing.three,
+    borderWidth: 1,
+  },
+  headerTitleContainer: { flex: 1 },
+  titleRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+  },
+  headerTitle: { fontSize: 20, fontWeight: '800', letterSpacing: -0.3 },
   aiBadge: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: '#e0e7ff',
     paddingHorizontal: 8,
-    paddingVertical: 4,
-    borderRadius: 8,
+    paddingVertical: 2,
+    borderRadius: Radius.full,
     gap: 4,
   },
-  aiBadgeText: { color: '#4338ca', fontSize: 11, fontWeight: 'bold' },
+  aiBadgeText: { fontSize: 10, fontWeight: '800', letterSpacing: 0.5 },
   chipsContainer: {
     paddingVertical: Spacing.two,
   },
@@ -236,70 +338,75 @@ const styles = StyleSheet.create({
     gap: Spacing.two,
   },
   chip: {
-    paddingHorizontal: 12,
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingHorizontal: 14,
     paddingVertical: 8,
-    borderRadius: 16,
+    borderRadius: Radius.full,
     borderWidth: 1,
-    borderColor: '#e2e8f0',
   },
-  chipText: { color: '#667eea', fontWeight: '600' },
+  chipText: { fontWeight: '600', fontSize: 12 },
   messagesContainer: { flex: 1 },
-  messageBubble: {
+  messageRow: {
     flexDirection: 'row',
     marginVertical: Spacing.two,
-    maxWidth: '85%',
-    borderRadius: 16,
-    padding: Spacing.three,
+    alignItems: 'flex-end',
   },
-  userBubble: {
-    alignSelf: 'flex-end',
-    backgroundColor: '#667eea',
-    borderBottomRightRadius: 4,
+  userRow: {
+    justifyContent: 'flex-end',
   },
-  aiBubble: {
-    alignSelf: 'flex-start',
-    borderBottomLeftRadius: 4,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 1 },
-    shadowOpacity: 0.05,
-    shadowRadius: 3,
-    elevation: 1,
+  aiRow: {
+    justifyContent: 'flex-start',
   },
   aiAvatar: {
-    width: 30,
-    height: 30,
-    borderRadius: 15,
-    backgroundColor: '#667eea',
+    width: 28,
+    height: 28,
+    borderRadius: 14,
     justifyContent: 'center',
     alignItems: 'center',
     marginRight: Spacing.two,
+    marginBottom: 2,
   },
-  aiAvatarText: { color: '#fff', fontSize: 11, fontWeight: 'bold' },
-  bubbleTextContainer: { flex: 1 },
-  messageText: { fontSize: 15, lineHeight: 22 },
+  messageBubble: {
+    maxWidth: '82%',
+    borderRadius: Radius.lg,
+    padding: Spacing.three,
+  },
+  userBubble: {
+    borderBottomRightRadius: 4,
+  },
+  aiBubble: {
+    borderBottomLeftRadius: 4,
+    borderWidth: 1,
+  },
+  messageText: { fontSize: 14, lineHeight: 21 },
   timestampText: { fontSize: 10, marginTop: 4, alignSelf: 'flex-end' },
   thinkingContainer: { flexDirection: 'row', alignItems: 'center', gap: 8 },
-  thinkingText: { color: '#64748b', fontSize: 14, fontStyle: 'italic' },
+  thinkingText: { fontStyle: 'italic', fontSize: 13 },
   inputBar: {
     flexDirection: 'row',
     alignItems: 'center',
     padding: Spacing.three,
     paddingBottom: Platform.OS === 'ios' ? Spacing.six : Spacing.three,
-    borderTopWidth: StyleSheet.hairlineWidth,
+    borderTopWidth: 1,
+    gap: 8,
+  },
+  inputWrapper: {
+    flex: 1,
+    height: 46,
+    borderRadius: Radius.md,
+    borderWidth: 1,
+    paddingHorizontal: Spacing.three,
+    justifyContent: 'center',
   },
   input: {
-    flex: 1,
-    paddingHorizontal: Spacing.four,
-    paddingVertical: 10,
-    borderRadius: 20,
-    fontSize: 15,
-    marginRight: Spacing.two,
+    height: '100%',
+    fontSize: 14,
   },
   sendButton: {
-    width: 44,
-    height: 44,
-    borderRadius: 22,
-    backgroundColor: '#667eea',
+    width: 46,
+    height: 46,
+    borderRadius: 23,
     justifyContent: 'center',
     alignItems: 'center',
   },

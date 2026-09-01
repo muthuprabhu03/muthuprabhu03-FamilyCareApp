@@ -1,16 +1,17 @@
-import { useState, useCallback } from 'react';
+import React, { useState, useCallback } from 'react';
 import { StyleSheet, ScrollView, TouchableOpacity, View } from 'react-native';
 import { useRouter, useFocusEffect } from 'expo-router';
 import { familyMemberService } from '@/services/familyMemberService';
 import { FamilyMember } from '@/types/family';
 import { ThemedText } from '@/components/themed-text';
 import { ThemedView } from '@/components/themed-view';
-import { Spacing } from '@/constants/theme';
+import { Radius, Shadows, Spacing } from '@/constants/theme';
 import { useTheme } from '@/hooks/use-theme';
-import { LoadingState } from '@/components/ui/LoadingState';
+import { SkeletonCard } from '@/components/ui/SkeletonLoader';
 import { EmptyState } from '@/components/ui/EmptyState';
 import { AppIcon } from '@/components/ui/AppIcon';
 import { useTranslation } from '@/i18n';
+import { StatusBadge } from '@/components/ui/StatusBadge';
 
 export default function FamilyScreen() {
   const { t } = useTranslation();
@@ -36,44 +37,89 @@ export default function FamilyScreen() {
     }
   };
 
-  if (isLoading) return <LoadingState />;
-
   return (
-    <ScrollView style={[styles.container, { backgroundColor: theme.backgroundElement }]}>
+    <ScrollView
+      style={[styles.container, { backgroundColor: theme.backgroundElement }]}
+      showsVerticalScrollIndicator={false}
+    >
+      {/* Header */}
       <ThemedView style={styles.header}>
-        <ThemedText type="default" style={styles.title}>{t('familyMembers')}</ThemedText>
-        <TouchableOpacity style={styles.addButton} onPress={() => router.push('/(app)/family/create' as any)}>
+        <View>
+          <ThemedText type="default" style={styles.title}>
+            {t('familyMembers')}
+          </ThemedText>
+          <ThemedText type="small" themeColor="textSecondary">
+            {members.length} {members.length === 1 ? 'member' : 'members'} in your circle
+          </ThemedText>
+        </View>
+        <TouchableOpacity
+          style={[styles.addButton, { backgroundColor: theme.primary }, Shadows.glowPrimary]}
+          onPress={() => router.push('/(app)/family/create' as any)}
+          activeOpacity={0.85}
+        >
           <AppIcon name="plus" tintColor="#fff" size={20} />
         </TouchableOpacity>
       </ThemedView>
 
-      <ThemedView style={styles.content}>
-        {members.length === 0 ? (
-          <EmptyState 
-            message={t('noMembersFound')} 
-            actionLabel={t('addMember')} 
-            onAction={() => router.push('/(app)/family/create' as any)} 
+      {/* Content */}
+      <View style={styles.content}>
+        {isLoading ? (
+          <View>
+            <SkeletonCard style={{ marginBottom: Spacing.three }} />
+            <SkeletonCard style={{ marginBottom: Spacing.three }} />
+            <SkeletonCard style={{ marginBottom: Spacing.three }} />
+          </View>
+        ) : members.length === 0 ? (
+          <EmptyState
+            icon="person.2.fill"
+            message={t('noMembersFound')}
+            description="Add your first family member to track their health, finances, and location."
+            actionLabel={t('addMember')}
+            onAction={() => router.push('/(app)/family/create' as any)}
           />
         ) : (
-          members.map(member => (
-            <TouchableOpacity 
-              key={member.id} 
+          members.map((member) => (
+            <TouchableOpacity
+              key={member.id}
               onPress={() => router.push(`/(app)/family/${member.id}` as any)}
+              activeOpacity={0.8}
             >
-              <ThemedView style={[styles.card, { backgroundColor: theme.background }]}>
-                <View style={styles.avatar}>
-                  <ThemedText style={styles.avatarText}>{member.name.charAt(0).toUpperCase()}</ThemedText>
+              <View
+                style={[
+                  styles.card,
+                  { backgroundColor: theme.card, borderColor: theme.cardBorder },
+                  Shadows.soft,
+                ]}
+              >
+                <View style={[styles.avatar, { backgroundColor: theme.primary }]}>
+                  <ThemedText style={styles.avatarText}>
+                    {member.name.charAt(0).toUpperCase()}
+                  </ThemedText>
                 </View>
-                <ThemedView style={styles.cardInfo}>
-                  <ThemedText type="default" style={styles.memberName}>{member.name}</ThemedText>
-                  <ThemedText type="small" themeColor="textSecondary">{member.relationship} • {member.age} yrs</ThemedText>
-                </ThemedView>
-                <AppIcon name="chevron.right" tintColor={theme.textSecondary} size={18} />
-              </ThemedView>
+                <View style={styles.cardInfo}>
+                  <ThemedText type="default" style={styles.memberName}>
+                    {member.name}
+                  </ThemedText>
+                  <View style={styles.metaRow}>
+                    <StatusBadge
+                      label={member.relationship || 'Member'}
+                      variant="purple"
+                      size="sm"
+                      showDot={false}
+                    />
+                    <ThemedText type="small" themeColor="textSecondary" style={{ marginLeft: 8 }}>
+                      {member.age} yrs
+                    </ThemedText>
+                  </View>
+                </View>
+                <View style={styles.arrowCircle}>
+                  <AppIcon name="chevron.right" tintColor={theme.textSecondary} size={16} />
+                </View>
+              </View>
             </TouchableOpacity>
           ))
         )}
-      </ThemedView>
+      </View>
     </ScrollView>
   );
 }
@@ -81,45 +127,48 @@ export default function FamilyScreen() {
 const styles = StyleSheet.create({
   container: { flex: 1 },
   header: {
-    padding: Spacing.four,
+    paddingHorizontal: Spacing.four,
     paddingTop: Spacing.six,
+    paddingBottom: Spacing.three,
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
     backgroundColor: 'transparent',
   },
-  title: { fontSize: 24, fontWeight: 'bold' },
+  title: { fontSize: 24, fontWeight: '800', letterSpacing: -0.3 },
   addButton: {
-    backgroundColor: '#667eea',
-    width: 40,
-    height: 40,
-    borderRadius: 20,
+    width: 44,
+    height: 44,
+    borderRadius: 22,
     justifyContent: 'center',
     alignItems: 'center',
   },
-  content: { padding: Spacing.three, backgroundColor: 'transparent' },
+  content: { padding: Spacing.four },
   card: {
     flexDirection: 'row',
     alignItems: 'center',
     padding: Spacing.four,
-    borderRadius: 16,
+    borderRadius: Radius.lg,
     marginBottom: Spacing.three,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.05,
-    shadowRadius: 5,
-    elevation: 2,
+    borderWidth: 1,
   },
   avatar: {
-    width: 44,
-    height: 44,
-    borderRadius: 22,
-    backgroundColor: '#667eea',
+    width: 48,
+    height: 48,
+    borderRadius: 24,
     justifyContent: 'center',
     alignItems: 'center',
     marginRight: Spacing.three,
   },
-  avatarText: { color: '#ffffff', fontWeight: 'bold', fontSize: 18 },
-  cardInfo: { flex: 1, backgroundColor: 'transparent' },
-  memberName: { fontWeight: '600', marginBottom: 2, fontSize: 16 }
+  avatarText: { color: '#ffffff', fontWeight: '800', fontSize: 19 },
+  cardInfo: { flex: 1 },
+  memberName: { fontWeight: '700', fontSize: 16, marginBottom: 4 },
+  metaRow: { flexDirection: 'row', alignItems: 'center' },
+  arrowCircle: {
+    width: 28,
+    height: 28,
+    borderRadius: 14,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
 });

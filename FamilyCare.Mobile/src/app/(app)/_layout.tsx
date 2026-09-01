@@ -1,7 +1,9 @@
 import { Tabs } from 'expo-router';
+import { Platform } from 'react-native';
 import { AppIcon } from '@/components/ui/AppIcon';
 import { useTheme } from '@/hooks/use-theme';
 import { useTranslation } from '@/i18n';
+import { Shadows } from '@/constants/theme';
 
 export default function AppLayout() {
   const theme = useTheme();
@@ -11,18 +13,21 @@ export default function AppLayout() {
     <Tabs
       screenOptions={{
         headerShown: false,
-        tabBarActiveTintColor: '#667eea',
+        tabBarActiveTintColor: theme.primary,
         tabBarInactiveTintColor: theme.textSecondary,
         tabBarStyle: {
-          backgroundColor: theme.backgroundElement,
-          borderTopColor: theme.backgroundSelected,
-          height: 60,
-          paddingBottom: 8,
+          backgroundColor: theme.card,
+          borderTopColor: theme.cardBorder,
+          borderTopWidth: 1,
+          height: Platform.select({ ios: 82, android: 68, default: 68 }),
+          paddingBottom: Platform.select({ ios: 24, android: 10, default: 10 }),
           paddingTop: 8,
+          ...Shadows.soft,
         },
         tabBarLabelStyle: {
-          fontSize: 12,
-          fontWeight: '600',
+          fontSize: 11,
+          fontWeight: '700',
+          letterSpacing: 0.2,
         },
       }}
     >
@@ -82,9 +87,9 @@ export default function AppLayout() {
         }}
       />
       <Tabs.Screen
-        name="more"
+        name="ai-assistant"
         options={{
-          title: t('more'),
+          title: 'Flash AI',
           headerShown: false,
           tabBarIcon: ({ color, focused }) => (
             <AppIcon
@@ -93,6 +98,26 @@ export default function AppLayout() {
               size={22}
             />
           ),
+        }}
+      />
+      <Tabs.Screen
+        name="settings"
+        options={{
+          title: t('settings'),
+          headerShown: false,
+          tabBarIcon: ({ color, focused }) => (
+            <AppIcon
+              name={focused ? 'gearshape.fill' : 'gearshape'}
+              tintColor={color}
+              size={22}
+            />
+          ),
+        }}
+      />
+      <Tabs.Screen
+        name="more"
+        options={{
+          href: null, // Hide internal more screen from tab bar since AI & Settings are now direct tabs
         }}
       />
     </Tabs>

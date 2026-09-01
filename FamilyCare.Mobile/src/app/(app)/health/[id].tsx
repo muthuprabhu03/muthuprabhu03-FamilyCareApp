@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react';
 import { StyleSheet, ScrollView, Alert, View } from 'react-native';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { healthService } from '@/services/healthService';
+import { notificationService } from '@/services/notificationService';
 import { Medicine } from '@/types/health';
 import { ThemedText } from '@/components/themed-text';
 import { ThemedView } from '@/components/themed-view';
@@ -71,7 +72,9 @@ export default function MedicineDetailsScreen() {
       async () => {
         setIsSaving(true);
         try {
-          await healthService.deleteMedicine(parseInt(id, 10));
+          const medId = parseInt(id, 10);
+          await healthService.deleteMedicine(medId);
+          await notificationService.cancelNotification(`medicine-${medId}`);
           router.back();
         } catch (error: any) {
           Alert.alert('Error', error.message);

@@ -9,7 +9,7 @@ import {
 import { useRouter } from 'expo-router';
 import { ThemedText } from '@/components/themed-text';
 import { ThemedView } from '@/components/themed-view';
-import { Spacing } from '@/constants/theme';
+import { Radius, Shadows, Spacing } from '@/constants/theme';
 import { useTheme } from '@/hooks/use-theme';
 import { AppIcon } from '@/components/ui/AppIcon';
 import { useAppTheme, ThemeMode } from '@/context/ThemeContext';
@@ -56,13 +56,16 @@ export default function SettingsScreen() {
   return (
     <ScrollView
       style={[styles.container, { backgroundColor: theme.backgroundElement }]}
+      showsVerticalScrollIndicator={false}
     >
+      {/* Header */}
       <ThemedView style={styles.header}>
         <TouchableOpacity
           onPress={() => router.back()}
-          style={styles.backButton}
+          style={[styles.backButton, { backgroundColor: theme.card, borderColor: theme.cardBorder }]}
+          activeOpacity={0.7}
         >
-          <AppIcon name="chevron.left" tintColor={theme.text} size={24} />
+          <AppIcon name="chevron.left" tintColor={theme.text} size={20} />
         </TouchableOpacity>
         <ThemedText type="default" style={styles.title}>
           {t('settings')}
@@ -72,9 +75,13 @@ export default function SettingsScreen() {
       <View style={styles.content}>
         {/* Account Profile Card */}
         <ThemedView
-          style={[styles.profileCard, { backgroundColor: theme.background }]}
+          style={[
+            styles.profileCard,
+            { backgroundColor: theme.card, borderColor: theme.cardBorder },
+            Shadows.soft,
+          ]}
         >
-          <View style={styles.avatar}>
+          <View style={[styles.avatar, { backgroundColor: theme.primary }]}>
             <ThemedText style={styles.avatarText}>
               {user?.email.charAt(0).toUpperCase() || 'U'}
             </ThemedText>
@@ -86,8 +93,8 @@ export default function SettingsScreen() {
             <ThemedText type="small" themeColor="textSecondary">
               {user?.email || ''}
             </ThemedText>
-            <View style={styles.roleBadge}>
-              <ThemedText style={styles.roleText}>
+            <View style={[styles.roleBadge, { backgroundColor: theme.purpleBg }]}>
+              <ThemedText style={[styles.roleText, { color: theme.primary }]}>
                 {user?.role || 'Family Admin'}
               </ThemedText>
             </View>
@@ -103,10 +110,14 @@ export default function SettingsScreen() {
           {t('appearance')}
         </ThemedText>
         <ThemedView
-          style={[styles.sectionCard, { backgroundColor: theme.background }]}
+          style={[
+            styles.sectionCard,
+            { backgroundColor: theme.card, borderColor: theme.cardBorder },
+            Shadows.soft,
+          ]}
         >
           <ThemedText style={styles.settingLabel}>{t('theme')}</ThemedText>
-          <View style={styles.segmentedRow}>
+          <View style={[styles.segmentedRow, { backgroundColor: theme.backgroundElement }]}>
             {themeOptions.map((opt) => {
               const isSelected = themeMode === opt.mode;
               return (
@@ -114,19 +125,27 @@ export default function SettingsScreen() {
                   key={opt.mode}
                   style={[
                     styles.segmentButton,
-                    isSelected && { backgroundColor: '#667eea' },
+                    isSelected && [
+                      styles.segmentButtonActive,
+                      { backgroundColor: theme.primary },
+                      Shadows.soft,
+                    ],
                   ]}
                   onPress={() => setThemeMode(opt.mode)}
+                  activeOpacity={0.8}
                 >
                   <AppIcon
                     name={opt.icon}
                     tintColor={isSelected ? '#fff' : theme.textSecondary}
-                    size={18}
+                    size={16}
                   />
                   <ThemedText
                     style={[
                       styles.segmentText,
-                      isSelected && { color: '#fff', fontWeight: 'bold' },
+                      {
+                        color: isSelected ? '#fff' : theme.textSecondary,
+                        fontWeight: isSelected ? '700' : '500',
+                      },
                     ]}
                   >
                     {t(opt.labelKey)}
@@ -146,7 +165,11 @@ export default function SettingsScreen() {
           {t('language')}
         </ThemedText>
         <ThemedView
-          style={[styles.sectionCard, { backgroundColor: theme.background }]}
+          style={[
+            styles.sectionCard,
+            { backgroundColor: theme.card, borderColor: theme.cardBorder },
+            Shadows.soft,
+          ]}
         >
           {languageOptions.map((opt, index) => {
             const isSelected = language === opt.code;
@@ -157,16 +180,17 @@ export default function SettingsScreen() {
                   styles.languageRow,
                   index > 0 && {
                     borderTopWidth: StyleSheet.hairlineWidth,
-                    borderTopColor: theme.backgroundSelected,
+                    borderTopColor: theme.cardBorder,
                   },
                 ]}
                 onPress={() => setLanguage(opt.code)}
+                activeOpacity={0.7}
               >
                 <View style={{ flex: 1 }}>
                   <ThemedText
                     style={[
                       styles.languageName,
-                      isSelected && { color: '#667eea', fontWeight: 'bold' },
+                      isSelected && { color: theme.primary, fontWeight: '700' },
                     ]}
                   >
                     {opt.label}
@@ -176,11 +200,13 @@ export default function SettingsScreen() {
                   </ThemedText>
                 </View>
                 {isSelected && (
-                  <AppIcon
-                    name="checkmark.circle.fill"
-                    tintColor="#667eea"
-                    size={22}
-                  />
+                  <View style={[styles.checkCircle, { backgroundColor: theme.purpleBg }]}>
+                    <AppIcon
+                      name="checkmark.circle.fill"
+                      tintColor={theme.primary}
+                      size={22}
+                    />
+                  </View>
                 )}
               </TouchableOpacity>
             );
@@ -196,7 +222,11 @@ export default function SettingsScreen() {
           {t('appInfo')}
         </ThemedText>
         <ThemedView
-          style={[styles.sectionCard, { backgroundColor: theme.background }]}
+          style={[
+            styles.sectionCard,
+            { backgroundColor: theme.card, borderColor: theme.cardBorder },
+            Shadows.soft,
+          ]}
         >
           <View style={styles.infoRow}>
             <ThemedText>{t('version')}</ThemedText>
@@ -209,23 +239,38 @@ export default function SettingsScreen() {
               styles.infoRow,
               {
                 borderTopWidth: StyleSheet.hairlineWidth,
-                borderTopColor: theme.backgroundSelected,
+                borderTopColor: theme.cardBorder,
               },
             ]}
           >
             <ThemedText>Backend API</ThemedText>
-            <ThemedText type="small" style={{ color: '#10b981', fontWeight: '600' }}>
-              Connected (.NET 8.0)
-            </ThemedText>
+            <View style={styles.apiStatusBadge}>
+              <View style={styles.apiStatusDot} />
+              <ThemedText type="small" style={{ color: theme.success, fontWeight: '700' }}>
+                Connected (.NET 8.0)
+              </ThemedText>
+            </View>
           </View>
         </ThemedView>
 
         {/* Logout */}
-        <TouchableOpacity onPress={handleLogout} style={styles.logoutButton}>
-          <AppIcon name="arrow.right.square.fill" tintColor="#ef4444" size={20} />
-          <ThemedText style={styles.logoutText}>{t('logout')}</ThemedText>
+        <TouchableOpacity
+          onPress={handleLogout}
+          style={[
+            styles.logoutButton,
+            {
+              backgroundColor: theme.dangerBg,
+              borderColor: 'rgba(239, 68, 68, 0.2)',
+            },
+          ]}
+          activeOpacity={0.8}
+        >
+          <AppIcon name="arrow.right.square.fill" tintColor={theme.danger} size={20} />
+          <ThemedText style={[styles.logoutText, { color: theme.danger }]}>{t('logout')}</ThemedText>
         </TouchableOpacity>
       </View>
+
+      <View style={{ height: 40 }} />
     </ScrollView>
   );
 }
@@ -235,67 +280,67 @@ const styles = StyleSheet.create({
   header: {
     flexDirection: 'row',
     alignItems: 'center',
-    padding: Spacing.four,
+    paddingHorizontal: Spacing.four,
     paddingTop: Spacing.six,
+    paddingBottom: Spacing.two,
     backgroundColor: 'transparent',
   },
-  backButton: { marginRight: Spacing.three },
-  title: { fontSize: 24, fontWeight: 'bold' },
-  content: { padding: Spacing.four, paddingTop: 0 },
+  backButton: {
+    width: 38,
+    height: 38,
+    borderRadius: 19,
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginRight: Spacing.three,
+    borderWidth: 1,
+  },
+  title: { fontSize: 24, fontWeight: '800', letterSpacing: -0.3 },
+  content: { padding: Spacing.four, paddingTop: Spacing.two },
   profileCard: {
     flexDirection: 'row',
     alignItems: 'center',
     padding: Spacing.four,
-    borderRadius: 16,
+    borderRadius: Radius.xl,
     marginBottom: Spacing.four,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.05,
-    shadowRadius: 5,
-    elevation: 2,
+    borderWidth: 1,
   },
   avatar: {
-    width: 60,
-    height: 60,
-    borderRadius: 30,
-    backgroundColor: '#667eea',
+    width: 56,
+    height: 56,
+    borderRadius: 28,
     justifyContent: 'center',
     alignItems: 'center',
     marginRight: Spacing.three,
   },
-  avatarText: { color: '#ffffff', fontSize: 24, fontWeight: 'bold' },
+  avatarText: { color: '#ffffff', fontSize: 22, fontWeight: '800' },
   profileInfo: { flex: 1 },
-  profileName: { fontSize: 18, fontWeight: 'bold', textTransform: 'capitalize' },
+  profileName: { fontSize: 18, fontWeight: '800', textTransform: 'capitalize' },
   roleBadge: {
     alignSelf: 'flex-start',
-    backgroundColor: '#e0e7ff',
     paddingHorizontal: 8,
-    paddingVertical: 2,
-    borderRadius: 6,
+    paddingVertical: 3,
+    borderRadius: Radius.sm,
     marginTop: 4,
   },
-  roleText: { color: '#4338ca', fontSize: 12, fontWeight: 'bold' },
+  roleText: { fontSize: 11, fontWeight: '700' },
   sectionHeader: {
     marginBottom: Spacing.two,
     marginLeft: Spacing.one,
     textTransform: 'uppercase',
-    fontWeight: 'bold',
+    fontWeight: '700',
+    letterSpacing: 0.8,
+    fontSize: 11,
   },
   sectionCard: {
-    borderRadius: 16,
+    borderRadius: Radius.lg,
     padding: Spacing.four,
     marginBottom: Spacing.four,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 1 },
-    shadowOpacity: 0.05,
-    shadowRadius: 3,
-    elevation: 1,
+    borderWidth: 1,
   },
-  settingLabel: { fontSize: 16, fontWeight: '600', marginBottom: Spacing.three },
+  settingLabel: { fontSize: 15, fontWeight: '700', marginBottom: Spacing.three },
   segmentedRow: {
     flexDirection: 'row',
-    backgroundColor: '#f1f5f9',
-    borderRadius: 10,
+    borderRadius: Radius.md,
     padding: 4,
   },
   segmentButton: {
@@ -303,33 +348,51 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     justifyContent: 'center',
     alignItems: 'center',
-    paddingVertical: 10,
-    borderRadius: 8,
+    paddingVertical: 9,
+    borderRadius: Radius.sm,
     gap: 6,
   },
-  segmentText: { color: '#64748b', fontSize: 14, fontWeight: '500' },
+  segmentButtonActive: {},
+  segmentText: { fontSize: 13 },
   languageRow: {
     flexDirection: 'row',
     alignItems: 'center',
     paddingVertical: Spacing.three,
   },
-  languageName: { fontSize: 16, fontWeight: '600', marginBottom: 2 },
+  languageName: { fontSize: 15, fontWeight: '600', marginBottom: 2 },
+  checkCircle: {
+    width: 28,
+    height: 28,
+    borderRadius: 14,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
   infoRow: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
     paddingVertical: Spacing.three,
   },
+  apiStatusBadge: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+  },
+  apiStatusDot: {
+    width: 8,
+    height: 8,
+    borderRadius: 4,
+    backgroundColor: '#10b981',
+  },
   logoutButton: {
     flexDirection: 'row',
     justifyContent: 'center',
     alignItems: 'center',
-    backgroundColor: '#fee2e2',
     paddingVertical: Spacing.three,
-    borderRadius: 12,
+    borderRadius: Radius.md,
     marginTop: Spacing.two,
-    marginBottom: Spacing.six,
+    borderWidth: 1,
     gap: 8,
   },
-  logoutText: { color: '#ef4444', fontSize: 16, fontWeight: 'bold' },
+  logoutText: { fontSize: 15, fontWeight: '700' },
 });

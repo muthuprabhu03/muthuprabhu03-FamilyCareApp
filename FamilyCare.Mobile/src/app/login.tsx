@@ -1,6 +1,5 @@
-import { useState } from 'react';
+import React, { useState } from 'react';
 import {
-  Alert,
   ActivityIndicator,
   KeyboardAvoidingView,
   Platform,
@@ -12,6 +11,9 @@ import {
 } from 'react-native';
 import { useRouter } from 'expo-router';
 import { authService } from '@/services/authService';
+import { AppIcon } from '@/components/ui/AppIcon';
+import { Radius, Shadows, Spacing } from '@/constants/theme';
+import { ThemedText } from '@/components/themed-text';
 
 export default function LoginScreen() {
   const [email, setEmail] = useState('');
@@ -51,71 +53,103 @@ export default function LoginScreen() {
       style={styles.container}
       behavior={Platform.OS === 'ios' ? 'padding' : undefined}
     >
-      <View style={styles.card}>
+      <View style={[styles.card, Shadows.strong]}>
+        {/* Brand Icon Header */}
+        <View style={styles.brandIconBox}>
+          <AppIcon name="house.fill" tintColor="#ffffff" size={32} />
+        </View>
+
         <Text style={styles.title}>FamilyCare</Text>
 
-        <Text style={styles.subtitle}>
-          Welcome back
-        </Text>
+        <Text style={styles.subtitle}>Welcome back</Text>
 
         <Text style={styles.description}>
-          Sign in to continue to your account
+          Sign in to manage your family's health, tasks, and finances
         </Text>
 
         {errorMsg ? (
           <View style={styles.errorContainer}>
+            <AppIcon name="exclamationmark.triangle.fill" tintColor="#dc2626" size={16} />
             <Text style={styles.errorText}>{errorMsg}</Text>
           </View>
         ) : null}
 
+        {/* Email Field */}
         <View style={styles.inputContainer}>
-          <Text style={styles.label}>Email</Text>
-          <TextInput
-            style={styles.input}
-            placeholder="Enter your email"
-            placeholderTextColor="#999"
-            value={email}
-            onChangeText={(text) => { setEmail(text); setErrorMsg(''); }}
-            keyboardType="email-address"
-            autoCapitalize="none"
-            editable={!isLoading}
-          />
+          <Text style={styles.label}>Email Address</Text>
+          <View style={styles.inputWrapper}>
+            <View style={styles.inputIcon}>
+              <AppIcon name="person.fill" tintColor="#94a3b8" size={18} />
+            </View>
+            <TextInput
+              style={styles.input}
+              placeholder="Enter your email"
+              placeholderTextColor="#94a3b8"
+              value={email}
+              onChangeText={(text) => {
+                setEmail(text);
+                setErrorMsg('');
+              }}
+              keyboardType="email-address"
+              autoCapitalize="none"
+              editable={!isLoading}
+            />
+          </View>
         </View>
 
+        {/* Password Field */}
         <View style={styles.inputContainer}>
           <Text style={styles.label}>Password</Text>
-          <View style={styles.passwordContainer}>
+          <View style={styles.inputWrapper}>
+            <View style={styles.inputIcon}>
+              <AppIcon name="shield.fill" tintColor="#94a3b8" size={18} />
+            </View>
             <TextInput
-              style={styles.passwordInput}
+              style={styles.input}
               placeholder="Enter your password"
-              placeholderTextColor="#999"
+              placeholderTextColor="#94a3b8"
               value={password}
-              onChangeText={(text) => { setPassword(text); setErrorMsg(''); }}
+              onChangeText={(text) => {
+                setPassword(text);
+                setErrorMsg('');
+              }}
               secureTextEntry={!showPassword}
               editable={!isLoading}
             />
-            <TouchableOpacity 
+            <TouchableOpacity
               onPress={() => setShowPassword(!showPassword)}
               style={styles.showHideButton}
+              hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
             >
-              <Text style={styles.showHideText}>
-                {showPassword ? 'Hide' : 'Show'}
-              </Text>
+              <Text style={styles.showHideText}>{showPassword ? 'Hide' : 'Show'}</Text>
             </TouchableOpacity>
           </View>
         </View>
 
+        {/* Login CTA Button */}
         <TouchableOpacity
-          style={[styles.loginButton, isLoading && styles.loginButtonDisabled]}
+          style={[
+            styles.loginButton,
+            Shadows.glowPrimary,
+            isLoading && styles.loginButtonDisabled,
+          ]}
           onPress={handleLogin}
           disabled={isLoading}
+          activeOpacity={0.85}
         >
           {isLoading ? (
-            <ActivityIndicator color="#fff" />
+            <ActivityIndicator color="#fff" size="small" />
           ) : (
-            <Text style={styles.loginButtonText}>Login</Text>
+            <Text style={styles.loginButtonText}>Sign In</Text>
           )}
         </TouchableOpacity>
+
+        {/* Demo Tip */}
+        <View style={styles.demoTip}>
+          <Text style={styles.demoTipText}>
+            Demo credentials: admin@familycare.local / Admin@123
+          </Text>
+        </View>
       </View>
     </KeyboardAvoidingView>
   );
@@ -124,112 +158,140 @@ export default function LoginScreen() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#667eea',
+    backgroundColor: '#0d111d',
     justifyContent: 'center',
     alignItems: 'center',
-    padding: 20,
+    padding: Spacing.four,
   },
   card: {
     width: '100%',
     maxWidth: 420,
-    backgroundColor: '#ffffff',
-    borderRadius: 20,
-    padding: 30,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 8 },
-    shadowOpacity: 0.2,
-    shadowRadius: 15,
-    elevation: 10,
-  },
-  title: {
-    fontSize: 32,
-    fontWeight: 'bold',
-    color: '#667eea',
-    textAlign: 'center',
-    marginBottom: 8,
-  },
-  subtitle: {
-    fontSize: 24,
-    fontWeight: '600',
-    color: '#222',
-    textAlign: 'center',
-  },
-  description: {
-    fontSize: 14,
-    color: '#777',
-    textAlign: 'center',
-    marginTop: 8,
-    marginBottom: 20,
-  },
-  errorContainer: {
-    backgroundColor: '#fee2e2',
-    padding: 12,
-    borderRadius: 8,
-    marginBottom: 16,
+    backgroundColor: '#151926',
+    borderRadius: Radius.xl,
+    padding: Spacing.five,
     borderWidth: 1,
-    borderColor: '#ef4444',
-  },
-  errorText: {
-    color: '#b91c1c',
-    fontSize: 14,
-    textAlign: 'center',
-  },
-  inputContainer: {
-    marginBottom: 18,
-  },
-  label: {
-    fontSize: 14,
-    fontWeight: '600',
-    color: '#333',
-    marginBottom: 8,
-  },
-  input: {
-    height: 50,
-    borderWidth: 1,
-    borderColor: '#ddd',
-    borderRadius: 10,
-    paddingHorizontal: 15,
-    fontSize: 16,
-    color: '#222',
-    backgroundColor: '#fafafa',
-  },
-  passwordContainer: {
-    flexDirection: 'row',
+    borderColor: 'rgba(255,255,255,0.08)',
     alignItems: 'center',
-    borderWidth: 1,
-    borderColor: '#ddd',
-    borderRadius: 10,
-    backgroundColor: '#fafafa',
   },
-  passwordInput: {
-    flex: 1,
-    height: 50,
-    paddingHorizontal: 15,
-    fontSize: 16,
-    color: '#222',
-  },
-  showHideButton: {
-    padding: 10,
-    paddingRight: 15,
-  },
-  showHideText: {
-    color: '#667eea',
-    fontWeight: '600',
-  },
-  loginButton: {
-    height: 52,
-    backgroundColor: '#667eea',
-    borderRadius: 10,
+  brandIconBox: {
+    width: 64,
+    height: 64,
+    borderRadius: 32,
+    backgroundColor: '#6366f1',
     justifyContent: 'center',
     alignItems: 'center',
-    marginTop: 10,
+    marginBottom: Spacing.three,
+  },
+  title: {
+    fontSize: 28,
+    fontWeight: '800',
+    color: '#ffffff',
+    textAlign: 'center',
+    letterSpacing: -0.5,
+  },
+  subtitle: {
+    fontSize: 20,
+    fontWeight: '700',
+    color: '#e2e8f0',
+    textAlign: 'center',
+    marginTop: 4,
+  },
+  description: {
+    fontSize: 13,
+    color: '#94a3b8',
+    textAlign: 'center',
+    marginTop: 6,
+    marginBottom: Spacing.four,
+    lineHeight: 18,
+    maxWidth: 300,
+  },
+  errorContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: '#7f1d1d33',
+    padding: 12,
+    borderRadius: Radius.md,
+    marginBottom: Spacing.three,
+    borderWidth: 1,
+    borderColor: '#ef444466',
+    width: '100%',
+    gap: 8,
+  },
+  errorText: {
+    color: '#f87171',
+    fontSize: 13,
+    fontWeight: '500',
+    flex: 1,
+  },
+  inputContainer: {
+    width: '100%',
+    marginBottom: Spacing.three,
+  },
+  label: {
+    fontSize: 13,
+    fontWeight: '600',
+    color: '#cbd5e1',
+    marginBottom: 6,
+    letterSpacing: 0.2,
+  },
+  inputWrapper: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    height: 50,
+    borderWidth: 1,
+    borderColor: '#272f45',
+    borderRadius: Radius.md,
+    backgroundColor: '#12151f',
+    paddingHorizontal: Spacing.three,
+  },
+  inputIcon: {
+    marginRight: 10,
+  },
+  input: {
+    flex: 1,
+    height: '100%',
+    fontSize: 15,
+    color: '#f8fafc',
+    paddingVertical: 0,
+  },
+  showHideButton: {
+    padding: 6,
+  },
+  showHideText: {
+    color: '#818cf8',
+    fontWeight: '700',
+    fontSize: 13,
+  },
+  loginButton: {
+    width: '100%',
+    height: 50,
+    backgroundColor: '#6366f1',
+    borderRadius: Radius.md,
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginTop: Spacing.two,
   },
   loginButtonDisabled: {
-    backgroundColor: '#9ca3af',
+    backgroundColor: '#4b5563',
+    opacity: 0.7,
   },
   loginButtonText: {
     color: '#fff',
-    fontSize: 17,
-    fontWeight: 'bold',
+    fontSize: 16,
+    fontWeight: '800',
+    letterSpacing: 0.3,
+  },
+  demoTip: {
+    marginTop: Spacing.four,
+    paddingTop: Spacing.three,
+    borderTopWidth: 1,
+    borderTopColor: 'rgba(255,255,255,0.06)',
+    width: '100%',
+    alignItems: 'center',
+  },
+  demoTipText: {
+    color: '#64748b',
+    fontSize: 11,
+    textAlign: 'center',
   },
 });
