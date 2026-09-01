@@ -3,6 +3,8 @@ import { Stack, useRouter, useSegments, DarkTheme, DefaultTheme, ThemeProvider a
 import * as SplashScreen from 'expo-splash-screen';
 import { AnimatedSplashOverlay } from '@/components/animated-icon';
 import { authService } from '@/services/authService';
+import { notificationService } from '@/services/notificationService';
+import * as Notifications from 'expo-notifications';
 import { ThemeProvider as AppThemeProvider, useAppTheme } from '@/context/ThemeContext';
 import { LanguageProvider } from '@/i18n';
 
@@ -15,6 +17,16 @@ function RootNavigation() {
   const { isDark } = useAppTheme();
 
   useEffect(() => {
+    notificationService.initialize();
+
+    // Handle user tapping on a notification
+    const responseListener = Notifications.addNotificationResponseReceivedListener((response) => {
+      const data = response.notification.request.content.data;
+      if (data?.url) {
+        router.push(data.url as any);
+      }
+    });
+
     const checkAuth = async () => {
       const loggedIn = await authService.isLoggedIn();
       
@@ -33,6 +45,10 @@ function RootNavigation() {
     };
 
     checkAuth();
+
+    return () => {
+      responseListener.remove();
+    };
   }, [segments]);
 
   return (

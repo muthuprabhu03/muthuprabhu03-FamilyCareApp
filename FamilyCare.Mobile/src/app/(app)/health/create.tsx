@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react';
 import { StyleSheet, ScrollView, Alert } from 'react-native';
 import { useRouter } from 'expo-router';
 import { healthService } from '@/services/healthService';
+import { notificationService } from '@/services/notificationService';
 import { familyMemberService } from '@/services/familyMemberService';
 import { FamilyMember } from '@/types/family';
 import { ThemedText } from '@/components/themed-text';
@@ -52,13 +53,29 @@ export default function CreateMedicineScreen() {
 
     setIsLoading(true);
     try {
-      await healthService.createMedicine({
+      const res = await healthService.createMedicine({
         familyMemberId: Number(familyMemberId),
         name,
         dosage: dosage || undefined,
         instructions: instructions || undefined,
         startDate: new Date().toISOString(),
       });
+
+      // Schedule a default morning reminder (8:00 AM) for this medicine
+      const selectedMember = members.find((m) => m.id === Number(familyMemberId));
+      if (res?.id) {
+        await notificationService.scheduleMedicineReminder({
+          medicineId: res.id,
+          medicineName: name,
+          dosage: dosage || undefined,
+          instructions: instructions || undefined,
+          familyMemberName: selectedMember?.name,
+          hour: 8,
+          minute: 0,
+          repeat: 'daily',
+        });
+      }
+
       router.back();
     } catch (error: any) {
       Alert.alert(t('error'), error.message);

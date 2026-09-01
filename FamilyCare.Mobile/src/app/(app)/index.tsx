@@ -1,5 +1,10 @@
-import { useState, useCallback } from 'react';
-import { StyleSheet, ScrollView, TouchableOpacity, View, ActivityIndicator } from 'react-native';
+import React, { useState, useCallback } from 'react';
+import {
+  StyleSheet,
+  ScrollView,
+  TouchableOpacity,
+  View,
+} from 'react-native';
 import { useRouter, useFocusEffect } from 'expo-router';
 import { familyMemberService } from '@/services/familyMemberService';
 import { reminderService } from '@/services/reminderService';
@@ -13,11 +18,14 @@ import { authService } from '@/services/authService';
 import { User } from '@/types/auth';
 import { ThemedText } from '@/components/themed-text';
 import { ThemedView } from '@/components/themed-view';
-import { Spacing } from '@/constants/theme';
+import { Radius, Shadows, Spacing } from '@/constants/theme';
 import { useTheme } from '@/hooks/use-theme';
 import { AppIcon } from '@/components/ui/AppIcon';
 import { useTranslation } from '@/i18n';
 import { ThemeSwitcherButton } from '@/components/ui/ThemeSwitcherButton';
+import { SkeletonDashboard } from '@/components/ui/SkeletonLoader';
+import { StatusBadge } from '@/components/ui/StatusBadge';
+import { ActivityRingWidget } from '@/components/ui/ActivityRingWidget';
 
 export default function DashboardScreen() {
   const { t } = useTranslation();
@@ -29,6 +37,7 @@ export default function DashboardScreen() {
   const [incomes, setIncomes] = useState<Income[]>([]);
   const [medicines, setMedicines] = useState<Medicine[]>([]);
   const [isLoading, setIsLoading] = useState(true);
+  const [isBalanceHidden, setIsBalanceHidden] = useState(false);
   const router = useRouter();
   const theme = useTheme();
 
@@ -69,11 +78,7 @@ export default function DashboardScreen() {
   };
 
   if (!user || isLoading) {
-    return (
-      <ThemedView style={styles.loadingContainer}>
-        <ActivityIndicator size="large" color="#667eea" />
-      </ThemedView>
-    );
+    return <SkeletonDashboard />;
   }
 
   const pendingReminders = reminders.filter((r) => !r.isCompleted);
@@ -81,76 +86,160 @@ export default function DashboardScreen() {
   const totalExpense = expenses.reduce((sum, item) => sum + Number(item.amount || 0), 0);
   const netBalance = totalIncome - totalExpense;
 
+  const getGreeting = () => {
+    const hour = new Date().getHours();
+    if (hour < 12) return t('goodMorning') || 'Good morning';
+    if (hour < 17) return 'Good afternoon';
+    return 'Good evening';
+  };
+
+  const userInitial = (user.email.charAt(0) || 'U').toUpperCase();
+  const userName = user.email.split('@')[0];
+
   return (
-    <ScrollView style={[styles.container, { backgroundColor: theme.backgroundElement }]}>
-      {/* Header Profile & Quick Toggles */}
+    <ScrollView
+      style={[styles.container, { backgroundColor: theme.backgroundElement }]}
+      showsVerticalScrollIndicator={false}
+    >
+      {/* Header Bar */}
       <ThemedView style={styles.header}>
-        <View style={{ flex: 1 }}>
-          <ThemedText type="default" style={styles.greetingText}>{t('goodMorning')}</ThemedText>
-          <ThemedText type="default" style={styles.nameText}>{user.email.split('@')[0]}</ThemedText>
+        <View style={styles.headerLeft}>
+          <TouchableOpacity
+            style={[styles.profileAvatar, { backgroundColor: theme.primary }]}
+            onPress={() => router.push('/(app)/more/settings' as any)}
+            activeOpacity={0.8}
+          >
+            <ThemedText style={styles.profileAvatarText}>{userInitial}</ThemedText>
+            <View style={styles.onlineDot} />
+          </TouchableOpacity>
+          <View style={styles.greetingContainer}>
+            <ThemedText type="small" themeColor="textSecondary" style={styles.greetingText}>
+              {getGreeting()},
+            </ThemedText>
+            <ThemedText type="default" style={styles.nameText}>
+              {userName}
+            </ThemedText>
+          </View>
         </View>
+
         <View style={styles.headerActions}>
           <ThemeSwitcherButton />
           <TouchableOpacity
-            style={styles.settingsIconButton}
+            style={[styles.iconButton, { backgroundColor: theme.card, borderColor: theme.cardBorder }]}
             onPress={() => router.push('/(app)/more/settings' as any)}
+            activeOpacity={0.7}
           >
             <AppIcon name="gear" tintColor={theme.text} size={20} />
           </TouchableOpacity>
         </View>
       </ThemedView>
 
-      {/* Financial Hero Summary Card */}
+      {/* Flagship Financial Hero Card */}
       <View style={styles.section}>
         <TouchableOpacity
-          activeOpacity={0.9}
+          activeOpacity={0.92}
           onPress={() => router.push('/(app)/finance' as any)}
-          style={styles.heroFinanceCard}
+          style={[styles.heroFinanceCard, Shadows.strong]}
         >
-          <View style={styles.heroFinanceHeader}>
+          {/* Card Header */}
+          <View style={styles.heroHeaderRow}>
             <View>
-              <ThemedText style={styles.heroSubtitle}>FAMILY NET BALANCE</ThemedText>
-              <ThemedText style={styles.heroBalance}>${netBalance.toFixed(2)}</ThemedText>
+              <View style={styles.heroTagRow}>
+                <ThemedText style={styles.heroSubtitle}>FAMILY NET BALANCE</ThemedText>
+                <TouchableOpacity
+                  onPress={() => setIsBalanceHidden(!isBalanceHidden)}
+                  hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
+                  style={styles.eyeIconBtn}
+                >
+                  <AppIcon
+                    name={isBalanceHidden ? 'ellipsis.circle.fill' : 'sun.max.fill'}
+                    tintColor="rgba(255,255,255,0.7)"
+                    size={16}
+                  />
+                </TouchableOpacity>
+              </View>
+              <ThemedText style={styles.heroBalance}>
+                {isBalanceHidden ? '$ ••••••' : `$${netBalance.toFixed(2)}`}
+              </ThemedText>
             </View>
+
             <View style={styles.heroIconCircle}>
-              <AppIcon name="creditcard.fill" tintColor="#667eea" size={24} />
+              <AppIcon name="creditcard.fill" tintColor="#6366f1" size={24} />
             </View>
           </View>
 
-          <View style={styles.heroFinanceFooter}>
+          {/* Income & Expense Breakdown Pills */}
+          <View style={styles.heroFooter}>
             <View style={styles.heroPill}>
-              <AppIcon name="arrow.up.circle.fill" tintColor="#10b981" size={16} />
-              <View style={{ marginLeft: 6 }}>
-                <ThemedText style={styles.heroPillLabel}>Income</ThemedText>
-                <ThemedText style={styles.heroPillValue}>${totalIncome.toFixed(2)}</ThemedText>
+              <View style={[styles.pillIconBox, { backgroundColor: 'rgba(16, 185, 129, 0.2)' }]}>
+                <AppIcon name="arrow.down.circle.fill" tintColor="#10b981" size={16} />
+              </View>
+              <View style={{ marginLeft: 8 }}>
+                <ThemedText style={styles.heroPillLabel}>Total Income</ThemedText>
+                <ThemedText style={styles.heroPillValue}>
+                  {isBalanceHidden ? '••••' : `+$${totalIncome.toFixed(2)}`}
+                </ThemedText>
               </View>
             </View>
 
             <View style={styles.heroPillDivider} />
 
             <View style={styles.heroPill}>
-              <AppIcon name="arrow.down.circle.fill" tintColor="#ef4444" size={16} />
-              <View style={{ marginLeft: 6 }}>
-                <ThemedText style={styles.heroPillLabel}>Expenses</ThemedText>
-                <ThemedText style={styles.heroPillValue}>${totalExpense.toFixed(2)}</ThemedText>
+              <View style={[styles.pillIconBox, { backgroundColor: 'rgba(239, 68, 68, 0.2)' }]}>
+                <AppIcon name="cart.fill" tintColor="#ef4444" size={16} />
+              </View>
+              <View style={{ marginLeft: 8 }}>
+                <ThemedText style={styles.heroPillLabel}>Total Expenses</ThemedText>
+                <ThemedText style={styles.heroPillValue}>
+                  {isBalanceHidden ? '••••' : `-$${totalExpense.toFixed(2)}`}
+                </ThemedText>
               </View>
             </View>
           </View>
         </TouchableOpacity>
       </View>
 
-      {/* Family Stats 4-Grid Glance */}
+      {/* Activity Progress Rings */}
       <View style={styles.section}>
-        <ThemedText type="small" themeColor="textSecondary" style={styles.sectionTitle}>
-          OVERVIEW AT A GLANCE
-        </ThemedText>
+        <ActivityRingWidget
+          taskCompletionRate={
+            reminders.length > 0
+              ? (reminders.length - pendingReminders.length) / reminders.length
+              : 0.85
+          }
+          budgetHealthRate={
+            totalIncome > 0
+              ? Math.max(0.1, Math.min(1, (totalIncome - totalExpense) / totalIncome))
+              : 0.7
+          }
+          medicineAdherenceRate={medicines.length > 0 ? 0.85 : 1.0}
+        />
+      </View>
+
+      {/* 4-Grid Glance Cards */}
+      <View style={styles.section}>
+        <View style={styles.sectionHeaderRow}>
+          <ThemedText type="small" themeColor="textSecondary" style={styles.sectionHeaderTitle}>
+            OVERVIEW AT A GLANCE
+          </ThemedText>
+        </View>
+
         <View style={styles.statsGrid}>
+          {/* Family Members */}
           <TouchableOpacity
             onPress={() => router.push('/(app)/family' as any)}
-            style={[styles.statCard, { backgroundColor: theme.background }]}
+            style={[
+              styles.statCard,
+              { backgroundColor: theme.card, borderColor: theme.cardBorder },
+              Shadows.soft,
+            ]}
+            activeOpacity={0.8}
           >
-            <View style={[styles.statIconBox, { backgroundColor: '#e0e7ff' }]}>
-              <AppIcon name="person.2.fill" tintColor="#6366f1" size={20} />
+            <View style={styles.statTopRow}>
+              <View style={[styles.statIconBox, { backgroundColor: theme.purpleBg }]}>
+                <AppIcon name="person.2.fill" tintColor={theme.purple} size={20} />
+              </View>
+              <AppIcon name="chevron.right" tintColor={theme.textSecondary} size={14} />
             </View>
             <ThemedText style={styles.statNumber}>{familyMembers.length}</ThemedText>
             <ThemedText type="small" themeColor="textSecondary" style={styles.statLabel}>
@@ -158,12 +247,26 @@ export default function DashboardScreen() {
             </ThemedText>
           </TouchableOpacity>
 
+          {/* Pending Tasks */}
           <TouchableOpacity
             onPress={() => router.push('/(app)/more/reminders' as any)}
-            style={[styles.statCard, { backgroundColor: theme.background }]}
+            style={[
+              styles.statCard,
+              { backgroundColor: theme.card, borderColor: theme.cardBorder },
+              Shadows.soft,
+            ]}
+            activeOpacity={0.8}
           >
-            <View style={[styles.statIconBox, { backgroundColor: '#ffedd5' }]}>
-              <AppIcon name="bell.fill" tintColor="#f97316" size={20} />
+            <View style={styles.statTopRow}>
+              <View style={[styles.statIconBox, { backgroundColor: theme.warningBg }]}>
+                <AppIcon name="bell.fill" tintColor={theme.warning} size={20} />
+              </View>
+              <StatusBadge
+                label={`${pendingReminders.length}`}
+                variant={pendingReminders.length > 0 ? 'warning' : 'neutral'}
+                size="sm"
+                showDot={false}
+              />
             </View>
             <ThemedText style={styles.statNumber}>{pendingReminders.length}</ThemedText>
             <ThemedText type="small" themeColor="textSecondary" style={styles.statLabel}>
@@ -171,136 +274,214 @@ export default function DashboardScreen() {
             </ThemedText>
           </TouchableOpacity>
 
+          {/* Medicines */}
           <TouchableOpacity
             onPress={() => router.push('/(app)/health' as any)}
-            style={[styles.statCard, { backgroundColor: theme.background }]}
+            style={[
+              styles.statCard,
+              { backgroundColor: theme.card, borderColor: theme.cardBorder },
+              Shadows.soft,
+            ]}
+            activeOpacity={0.8}
           >
-            <View style={[styles.statIconBox, { backgroundColor: '#fce7f3' }]}>
-              <AppIcon name="cross.case.fill" tintColor="#ec4899" size={20} />
+            <View style={styles.statTopRow}>
+              <View style={[styles.statIconBox, { backgroundColor: theme.pinkBg }]}>
+                <AppIcon name="cross.case.fill" tintColor={theme.pink} size={20} />
+              </View>
+              <AppIcon name="chevron.right" tintColor={theme.textSecondary} size={14} />
             </View>
             <ThemedText style={styles.statNumber}>{medicines.length}</ThemedText>
             <ThemedText type="small" themeColor="textSecondary" style={styles.statLabel}>
-              Medicines
+              Medicines Active
             </ThemedText>
           </TouchableOpacity>
 
+          {/* Bills */}
           <TouchableOpacity
             onPress={() => router.push('/(app)/finance' as any)}
-            style={[styles.statCard, { backgroundColor: theme.background }]}
+            style={[
+              styles.statCard,
+              { backgroundColor: theme.card, borderColor: theme.cardBorder },
+              Shadows.soft,
+            ]}
+            activeOpacity={0.8}
           >
-            <View style={[styles.statIconBox, { backgroundColor: '#fee2e2' }]}>
-              <AppIcon name="dollarsign.circle.fill" tintColor="#ef4444" size={20} />
+            <View style={styles.statTopRow}>
+              <View style={[styles.statIconBox, { backgroundColor: theme.dangerBg }]}>
+                <AppIcon name="dollarsign.circle.fill" tintColor={theme.danger} size={20} />
+              </View>
+              <StatusBadge
+                label={`${bills.length}`}
+                variant={bills.length > 0 ? 'danger' : 'neutral'}
+                size="sm"
+                showDot={false}
+              />
             </View>
             <ThemedText style={styles.statNumber}>{bills.length}</ThemedText>
             <ThemedText type="small" themeColor="textSecondary" style={styles.statLabel}>
-              Bills
+              Active Bills
             </ThemedText>
           </TouchableOpacity>
         </View>
       </View>
 
-      {/* Flash AI Assistant Banner */}
+      {/* Flash AI Assistant Illuminated Banner */}
       <View style={styles.section}>
         <TouchableOpacity
           onPress={() => router.push('/(app)/more/ai-assistant' as any)}
-          style={styles.aiBanner}
+          style={[styles.aiBanner, Shadows.glowPrimary]}
+          activeOpacity={0.88}
         >
           <View style={styles.aiBannerIcon}>
             <AppIcon name="bolt.fill" tintColor="#6366f1" size={24} />
           </View>
           <View style={styles.aiBannerTextContainer}>
-            <ThemedText style={styles.aiBannerTitle}>Flash AI Assistant</ThemedText>
+            <View style={styles.aiTitleRow}>
+              <ThemedText style={styles.aiBannerTitle}>Flash AI Assistant</ThemedText>
+              <View style={styles.aiLiveBadge}>
+                <ThemedText style={styles.aiLiveText}>LIVE</ThemedText>
+              </View>
+            </View>
             <ThemedText style={styles.aiBannerSubtitle}>
-              Ask Flash about pending tasks, bills, finances &amp; medicines
+              Ask Flash about pending tasks, bills, finances & medicines
             </ThemedText>
           </View>
-          <AppIcon name="chevron.right" tintColor="#ffffff" size={20} />
+          <View style={styles.aiArrowBox}>
+            <AppIcon name="chevron.right" tintColor="#ffffff" size={16} />
+          </View>
         </TouchableOpacity>
       </View>
 
-      {/* Family Circle Strip */}
+      {/* Family Circle Live Strip */}
       <View style={styles.section}>
         <View style={styles.sectionHeaderRow}>
-          <ThemedText type="small" themeColor="textSecondary" style={styles.sectionTitle}>
+          <ThemedText type="small" themeColor="textSecondary" style={styles.sectionHeaderTitle}>
             {t('familyOverview')}
           </ThemedText>
-          <TouchableOpacity onPress={() => router.push('/(app)/family' as any)}>
-            <ThemedText type="small" style={{ color: '#667eea', fontWeight: 'bold' }}>
+          <TouchableOpacity
+            onPress={() => router.push('/(app)/family' as any)}
+            hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
+          >
+            <ThemedText type="small" style={{ color: theme.primary, fontWeight: '700' }}>
               {t('seeAll')}
             </ThemedText>
           </TouchableOpacity>
         </View>
-        <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.horizontalScroll}>
+
+        <ScrollView
+          horizontal
+          showsHorizontalScrollIndicator={false}
+          contentContainerStyle={styles.horizontalScroll}
+        >
           {familyMembers.map((member) => (
             <TouchableOpacity
               key={member.id}
               onPress={() => router.push(`/(app)/family/${member.id}` as any)}
               style={styles.avatarContainer}
+              activeOpacity={0.8}
             >
-              <View style={styles.avatar}>
-                <ThemedText style={styles.avatarText}>{member.name.charAt(0).toUpperCase()}</ThemedText>
+              <View style={[styles.avatarRing, { borderColor: theme.primary }]}>
+                <View style={[styles.avatar, { backgroundColor: theme.primary }]}>
+                  <ThemedText style={styles.avatarText}>
+                    {member.name.charAt(0).toUpperCase()}
+                  </ThemedText>
+                </View>
               </View>
               <ThemedText type="small" style={styles.avatarLabel} numberOfLines={1}>
                 {member.name.split(' ')[0]}
               </ThemedText>
             </TouchableOpacity>
           ))}
+
+          {/* Add Family Member Button */}
           <TouchableOpacity
             onPress={() => router.push('/(app)/family/create' as any)}
             style={styles.avatarContainer}
+            activeOpacity={0.8}
           >
-            <View style={[styles.avatar, { backgroundColor: '#e2e8f0' }]}>
-              <AppIcon name="plus" tintColor="#64748b" size={24} />
+            <View
+              style={[
+                styles.avatarAddRing,
+                {
+                  backgroundColor: theme.surfaceSubtle,
+                  borderColor: theme.cardBorder,
+                },
+              ]}
+            >
+              <AppIcon name="plus" tintColor={theme.primary} size={22} />
             </View>
-            <ThemedText type="small" style={styles.avatarLabel}>{t('add')}</ThemedText>
+            <ThemedText type="small" themeColor="textSecondary" style={styles.avatarLabel}>
+              {t('add')}
+            </ThemedText>
           </TouchableOpacity>
         </ScrollView>
       </View>
 
-      {/* Today's Upcoming Tasks & Reminders */}
+      {/* Upcoming Reminders & Actions */}
       <View style={styles.section}>
         <View style={styles.sectionHeaderRow}>
-          <ThemedText type="small" themeColor="textSecondary" style={styles.sectionTitle}>
+          <ThemedText type="small" themeColor="textSecondary" style={styles.sectionHeaderTitle}>
             UPCOMING TASKS &amp; REMINDERS
           </ThemedText>
-          <TouchableOpacity onPress={() => router.push('/(app)/more/reminders' as any)}>
-            <ThemedText type="small" style={{ color: '#667eea', fontWeight: 'bold' }}>
+          <TouchableOpacity
+            onPress={() => router.push('/(app)/more/reminders' as any)}
+            hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
+          >
+            <ThemedText type="small" style={{ color: theme.primary, fontWeight: '700' }}>
               {t('seeAll')}
             </ThemedText>
           </TouchableOpacity>
         </View>
 
         {pendingReminders.length === 0 ? (
-          <ThemedView style={[styles.emptyCard, { backgroundColor: theme.background }]}>
-            <AppIcon name="checkmark.circle.fill" tintColor="#10b981" size={32} />
+          <View
+            style={[
+              styles.emptyCard,
+              { backgroundColor: theme.card, borderColor: theme.cardBorder },
+              Shadows.soft,
+            ]}
+          >
+            <View style={[styles.emptyIconBox, { backgroundColor: theme.successBg }]}>
+              <AppIcon name="checkmark.circle.fill" tintColor={theme.success} size={28} />
+            </View>
             <ThemedText style={styles.emptyTitle}>All Caught Up!</ThemedText>
             <ThemedText type="small" themeColor="textSecondary" style={styles.emptySubtitle}>
-              No pending tasks right now. Tap below to create one.
+              No pending tasks right now. Great job keeping the family on track!
             </ThemedText>
             <TouchableOpacity
               onPress={() => router.push('/(app)/more/reminders/create' as any)}
-              style={styles.emptyBtn}
+              style={[styles.emptyBtn, { backgroundColor: theme.primary }]}
+              activeOpacity={0.85}
             >
               <ThemedText style={styles.emptyBtnText}>+ Add Reminder</ThemedText>
             </TouchableOpacity>
-          </ThemedView>
+          </View>
         ) : (
           pendingReminders.slice(0, 3).map((r) => (
             <TouchableOpacity
               key={r.id}
               onPress={() => router.push('/(app)/more/reminders' as any)}
-              style={[styles.taskItem, { backgroundColor: theme.background }]}
+              style={[
+                styles.taskItem,
+                { backgroundColor: theme.card, borderColor: theme.cardBorder },
+                Shadows.soft,
+              ]}
+              activeOpacity={0.8}
             >
-              <View style={styles.taskIconBox}>
-                <AppIcon name="bell.fill" tintColor="#f97316" size={18} />
+              <View style={[styles.taskIconBox, { backgroundColor: theme.warningBg }]}>
+                <AppIcon name="bell.fill" tintColor={theme.warning} size={18} />
               </View>
               <View style={{ flex: 1 }}>
                 <ThemedText style={styles.taskTitle}>{r.title}</ThemedText>
                 <ThemedText type="small" themeColor="textSecondary">
-                  {new Date(r.reminderAt).toLocaleDateString()} • {new Date(r.reminderAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                  {new Date(r.reminderAt).toLocaleDateString()} •{' '}
+                  {new Date(r.reminderAt).toLocaleTimeString([], {
+                    hour: '2-digit',
+                    minute: '2-digit',
+                  })}
                 </ThemedText>
               </View>
-              <AppIcon name="chevron.right" tintColor={theme.textSecondary} size={16} />
+              <StatusBadge label="Pending" variant="warning" size="sm" />
             </TouchableOpacity>
           ))
         )}
@@ -308,25 +489,56 @@ export default function DashboardScreen() {
 
       {/* Quick Actions Grid */}
       <View style={styles.section}>
-        <ThemedText type="small" themeColor="textSecondary" style={styles.sectionTitle}>
+        <ThemedText type="small" themeColor="textSecondary" style={styles.sectionHeaderTitle}>
           {t('quickActions')}
         </ThemedText>
         <View style={styles.quickActionsGrid}>
           {[
-            { label: t('addExpense'), icon: 'dollarsign.circle.fill', route: '/(app)/finance/create', color: '#10b981' },
-            { label: t('addMedicine'), icon: 'cross.case.fill', route: '/(app)/health/create', color: '#ec4899' },
-            { label: t('addReminder'), icon: 'bell.badge.fill', route: '/(app)/more/reminders/create', color: '#f97316' },
-            { label: t('viewMap'), icon: 'map.fill', route: '/(app)/more/location', color: '#3b82f6' },
+            {
+              label: t('addExpense'),
+              icon: 'cart.fill',
+              route: '/(app)/finance/create',
+              color: '#ef4444',
+              bg: theme.dangerBg,
+            },
+            {
+              label: t('addMedicine'),
+              icon: 'cross.case.fill',
+              route: '/(app)/health/create',
+              color: '#ec4899',
+              bg: theme.pinkBg,
+            },
+            {
+              label: t('addReminder'),
+              icon: 'bell.badge.fill',
+              route: '/(app)/more/reminders/create',
+              color: '#f97316',
+              bg: theme.warningBg,
+            },
+            {
+              label: t('viewMap'),
+              icon: 'map.fill',
+              route: '/(app)/more/location',
+              color: '#06b6d4',
+              bg: theme.surfaceSubtle,
+            },
           ].map((action, index) => (
             <TouchableOpacity
               key={index}
-              style={[styles.quickActionCard, { backgroundColor: theme.background }]}
+              style={[
+                styles.quickActionCard,
+                { backgroundColor: theme.card, borderColor: theme.cardBorder },
+                Shadows.soft,
+              ]}
               onPress={() => router.push(action.route as any)}
+              activeOpacity={0.8}
             >
-              <View style={[styles.quickActionIcon, { backgroundColor: `${action.color}15` }]}>
-                <AppIcon name={action.icon as any} tintColor={action.color} size={24} />
+              <View style={[styles.quickActionIcon, { backgroundColor: action.bg }]}>
+                <AppIcon name={action.icon as any} tintColor={action.color} size={22} />
               </View>
-              <ThemedText type="small" style={styles.quickActionLabel}>{action.label}</ThemedText>
+              <ThemedText type="small" style={styles.quickActionLabel}>
+                {action.label}
+              </ThemedText>
             </TouchableOpacity>
           ))}
         </View>
@@ -339,7 +551,6 @@ export default function DashboardScreen() {
 
 const styles = StyleSheet.create({
   container: { flex: 1 },
-  loadingContainer: { flex: 1, justifyContent: 'center', alignItems: 'center' },
   header: {
     paddingHorizontal: Spacing.four,
     paddingTop: Spacing.six,
@@ -349,18 +560,71 @@ const styles = StyleSheet.create({
     justifyContent: 'space-between',
     marginBottom: Spacing.two,
   },
-  headerActions: { flexDirection: 'row', alignItems: 'center' },
-  settingsIconButton: {
-    width: 40,
-    height: 40,
-    borderRadius: 20,
+  headerLeft: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    flex: 1,
+  },
+  profileAvatar: {
+    width: 44,
+    height: 44,
+    borderRadius: 22,
     justifyContent: 'center',
     alignItems: 'center',
+    marginRight: Spacing.three,
+    position: 'relative',
   },
-  greetingText: { fontSize: 15, color: '#64748b' },
-  nameText: { fontSize: 26, fontWeight: 'bold', textTransform: 'capitalize' },
-  section: { paddingHorizontal: Spacing.four, marginBottom: Spacing.four },
-  sectionTitle: { fontWeight: 'bold', marginBottom: Spacing.two, letterSpacing: 0.5 },
+  profileAvatarText: {
+    color: '#ffffff',
+    fontSize: 18,
+    fontWeight: '800',
+  },
+  onlineDot: {
+    position: 'absolute',
+    bottom: 0,
+    right: 0,
+    width: 12,
+    height: 12,
+    borderRadius: 6,
+    backgroundColor: '#10b981',
+    borderWidth: 2,
+    borderColor: '#ffffff',
+  },
+  greetingContainer: {
+    flex: 1,
+  },
+  greetingText: {
+    fontSize: 13,
+    fontWeight: '500',
+  },
+  nameText: {
+    fontSize: 20,
+    fontWeight: '800',
+    textTransform: 'capitalize',
+    letterSpacing: 0.2,
+  },
+  headerActions: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+  },
+  iconButton: {
+    width: 38,
+    height: 38,
+    borderRadius: 19,
+    justifyContent: 'center',
+    alignItems: 'center',
+    borderWidth: 1,
+  },
+  section: {
+    paddingHorizontal: Spacing.four,
+    marginBottom: Spacing.four,
+  },
+  sectionHeaderTitle: {
+    fontWeight: '700',
+    letterSpacing: 0.8,
+    fontSize: 12,
+  },
   sectionHeaderRow: {
     flexDirection: 'row',
     justifyContent: 'space-between',
@@ -368,23 +632,39 @@ const styles = StyleSheet.create({
     marginBottom: Spacing.two,
   },
   heroFinanceCard: {
-    backgroundColor: '#1e293b',
-    borderRadius: 20,
+    backgroundColor: '#131828',
+    borderRadius: Radius.xl,
     padding: Spacing.four,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.15,
-    shadowRadius: 10,
-    elevation: 4,
+    borderWidth: 1,
+    borderColor: 'rgba(255,255,255,0.1)',
   },
-  heroFinanceHeader: {
+  heroHeaderRow: {
     flexDirection: 'row',
     justifyContent: 'space-between',
-    alignItems: 'center',
+    alignItems: 'flex-start',
     marginBottom: Spacing.four,
   },
-  heroSubtitle: { color: '#94a3b8', fontSize: 11, fontWeight: 'bold', letterSpacing: 1 },
-  heroBalance: { color: '#ffffff', fontSize: 32, fontWeight: 'bold', marginTop: 4 },
+  heroTagRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+  },
+  heroSubtitle: {
+    color: '#94a3b8',
+    fontSize: 11,
+    fontWeight: '700',
+    letterSpacing: 1.2,
+  },
+  eyeIconBtn: {
+    padding: 2,
+  },
+  heroBalance: {
+    color: '#ffffff',
+    fontSize: 32,
+    fontWeight: '800',
+    marginTop: 6,
+    letterSpacing: -0.5,
+  },
   heroIconCircle: {
     width: 48,
     height: 48,
@@ -393,17 +673,42 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     alignItems: 'center',
   },
-  heroFinanceFooter: {
+  heroFooter: {
     flexDirection: 'row',
-    backgroundColor: 'rgba(255,255,255,0.08)',
-    borderRadius: 14,
+    backgroundColor: 'rgba(255,255,255,0.06)',
+    borderRadius: Radius.md,
     padding: Spacing.three,
     alignItems: 'center',
   },
-  heroPill: { flex: 1, flexDirection: 'row', alignItems: 'center' },
-  heroPillLabel: { color: '#94a3b8', fontSize: 11 },
-  heroPillValue: { color: '#ffffff', fontSize: 15, fontWeight: 'bold' },
-  heroPillDivider: { width: 1, height: 28, backgroundColor: 'rgba(255,255,255,0.15)', marginHorizontal: 8 },
+  heroPill: {
+    flex: 1,
+    flexDirection: 'row',
+    alignItems: 'center',
+  },
+  pillIconBox: {
+    width: 28,
+    height: 28,
+    borderRadius: 14,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  heroPillLabel: {
+    color: '#94a3b8',
+    fontSize: 11,
+    fontWeight: '500',
+  },
+  heroPillValue: {
+    color: '#ffffff',
+    fontSize: 14,
+    fontWeight: '700',
+    marginTop: 1,
+  },
+  heroPillDivider: {
+    width: 1,
+    height: 28,
+    backgroundColor: 'rgba(255,255,255,0.12)',
+    marginHorizontal: 8,
+  },
   statsGrid: {
     flexDirection: 'row',
     flexWrap: 'wrap',
@@ -411,14 +716,16 @@ const styles = StyleSheet.create({
     gap: 10,
   },
   statCard: {
-    width: '48%',
+    width: '48.5%',
     padding: Spacing.three,
-    borderRadius: 16,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 1 },
-    shadowOpacity: 0.05,
-    shadowRadius: 4,
-    elevation: 2,
+    borderRadius: Radius.lg,
+    borderWidth: 1,
+  },
+  statTopRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: 8,
   },
   statIconBox: {
     width: 36,
@@ -426,21 +733,23 @@ const styles = StyleSheet.create({
     borderRadius: 18,
     justifyContent: 'center',
     alignItems: 'center',
-    marginBottom: 6,
   },
-  statNumber: { fontSize: 22, fontWeight: 'bold' },
-  statLabel: { fontSize: 12, marginTop: 2 },
+  statNumber: {
+    fontSize: 24,
+    fontWeight: '800',
+    letterSpacing: -0.5,
+  },
+  statLabel: {
+    fontSize: 12,
+    marginTop: 2,
+    fontWeight: '500',
+  },
   aiBanner: {
     flexDirection: 'row',
     alignItems: 'center',
     padding: Spacing.four,
-    borderRadius: 18,
+    borderRadius: Radius.xl,
     backgroundColor: '#6366f1',
-    shadowColor: '#6366f1',
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.25,
-    shadowRadius: 8,
-    elevation: 4,
   },
   aiBannerIcon: {
     width: 44,
@@ -451,84 +760,172 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     marginRight: Spacing.three,
   },
-  aiBannerTextContainer: { flex: 1 },
-  aiBannerTitle: { color: '#ffffff', fontSize: 16, fontWeight: 'bold', marginBottom: 2 },
-  aiBannerSubtitle: { color: 'rgba(255,255,255,0.85)', fontSize: 12 },
-  horizontalScroll: { paddingBottom: Spacing.two },
-  avatarContainer: { alignItems: 'center', marginRight: Spacing.four, width: 64 },
+  aiBannerTextContainer: {
+    flex: 1,
+  },
+  aiTitleRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+    marginBottom: 2,
+  },
+  aiBannerTitle: {
+    color: '#ffffff',
+    fontSize: 15,
+    fontWeight: '800',
+  },
+  aiLiveBadge: {
+    backgroundColor: 'rgba(255,255,255,0.25)',
+    paddingHorizontal: 6,
+    paddingVertical: 2,
+    borderRadius: 6,
+  },
+  aiLiveText: {
+    color: '#ffffff',
+    fontSize: 10,
+    fontWeight: '800',
+    letterSpacing: 0.5,
+  },
+  aiBannerSubtitle: {
+    color: 'rgba(255,255,255,0.85)',
+    fontSize: 12,
+    fontWeight: '400',
+    lineHeight: 16,
+  },
+  aiArrowBox: {
+    width: 28,
+    height: 28,
+    borderRadius: 14,
+    backgroundColor: 'rgba(255,255,255,0.2)',
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginLeft: 6,
+  },
+  horizontalScroll: {
+    paddingVertical: Spacing.one,
+    paddingRight: Spacing.four,
+  },
+  avatarContainer: {
+    alignItems: 'center',
+    marginRight: Spacing.three,
+    width: 64,
+  },
+  avatarRing: {
+    padding: 2,
+    borderWidth: 2,
+    borderRadius: 34,
+    marginBottom: 6,
+  },
   avatar: {
+    width: 56,
+    height: 56,
+    borderRadius: 28,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  avatarAddRing: {
     width: 60,
     height: 60,
     borderRadius: 30,
-    backgroundColor: '#667eea',
+    borderWidth: 1.5,
+    borderStyle: 'dashed',
     justifyContent: 'center',
     alignItems: 'center',
     marginBottom: 6,
   },
-  avatarText: { color: '#ffffff', fontSize: 22, fontWeight: 'bold' },
-  avatarLabel: { textAlign: 'center', fontWeight: '500' },
+  avatarText: {
+    color: '#ffffff',
+    fontSize: 20,
+    fontWeight: '800',
+  },
+  avatarLabel: {
+    textAlign: 'center',
+    fontWeight: '600',
+    fontSize: 12,
+  },
   emptyCard: {
     alignItems: 'center',
-    padding: Spacing.four,
-    borderRadius: 16,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 1 },
-    shadowOpacity: 0.05,
-    shadowRadius: 4,
-    elevation: 2,
+    padding: Spacing.five,
+    borderRadius: Radius.lg,
+    borderWidth: 1,
   },
-  emptyTitle: { fontSize: 16, fontWeight: 'bold', marginTop: 8 },
-  emptySubtitle: { textAlign: 'center', marginTop: 4, marginBottom: 12 },
+  emptyIconBox: {
+    width: 52,
+    height: 52,
+    borderRadius: 26,
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginBottom: Spacing.two,
+  },
+  emptyTitle: {
+    fontSize: 16,
+    fontWeight: '700',
+    marginBottom: 4,
+  },
+  emptySubtitle: {
+    textAlign: 'center',
+    marginBottom: Spacing.three,
+    fontSize: 13,
+    maxWidth: 260,
+  },
   emptyBtn: {
-    backgroundColor: '#667eea',
-    paddingHorizontal: 16,
-    paddingVertical: 8,
-    borderRadius: 12,
+    paddingHorizontal: 20,
+    paddingVertical: 10,
+    borderRadius: Radius.md,
   },
-  emptyBtnText: { color: '#ffffff', fontWeight: 'bold', fontSize: 13 },
+  emptyBtnText: {
+    color: '#ffffff',
+    fontWeight: '700',
+    fontSize: 13,
+  },
   taskItem: {
     flexDirection: 'row',
     alignItems: 'center',
     padding: Spacing.three,
-    borderRadius: 14,
+    borderRadius: Radius.md,
     marginBottom: Spacing.two,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 1 },
-    shadowOpacity: 0.05,
-    shadowRadius: 3,
-    elevation: 1,
+    borderWidth: 1,
   },
   taskIconBox: {
     width: 36,
     height: 36,
     borderRadius: 18,
-    backgroundColor: '#ffedd5',
     justifyContent: 'center',
     alignItems: 'center',
     marginRight: Spacing.three,
   },
-  taskTitle: { fontSize: 15, fontWeight: '600', marginBottom: 2 },
-  quickActionsGrid: { flexDirection: 'row', flexWrap: 'wrap', justifyContent: 'space-between' },
+  taskTitle: {
+    fontSize: 14,
+    fontWeight: '600',
+    marginBottom: 2,
+  },
+  quickActionsGrid: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    justifyContent: 'space-between',
+    gap: 10,
+  },
   quickActionCard: {
-    width: '48%',
-    padding: Spacing.four,
-    borderRadius: 16,
-    marginBottom: Spacing.three,
+    width: '48.5%',
+    padding: Spacing.three,
+    borderRadius: Radius.lg,
+    borderWidth: 1,
     alignItems: 'center',
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.05,
-    shadowRadius: 5,
-    elevation: 2,
   },
   quickActionIcon: {
-    width: 48,
-    height: 48,
-    borderRadius: 24,
+    width: 44,
+    height: 44,
+    borderRadius: 22,
     justifyContent: 'center',
     alignItems: 'center',
-    marginBottom: Spacing.two,
+    marginBottom: 8,
   },
-  quickActionLabel: { fontWeight: '600', textAlign: 'center' },
-  bottomPadding: { height: 30, backgroundColor: 'transparent' },
+  quickActionLabel: {
+    fontWeight: '600',
+    textAlign: 'center',
+    fontSize: 13,
+  },
+  bottomPadding: {
+    height: 40,
+  },
 });
